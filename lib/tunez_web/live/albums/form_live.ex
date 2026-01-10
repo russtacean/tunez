@@ -37,7 +37,7 @@ defmodule TunezWeb.Albums.FormLive do
         <.input field={form[:cover_image_url]} label="Cover Image URL" />
 
         <:actions>
-          <.button type="primary">Save</.button>
+          <.button>Save</.button>
         </:actions>
       </.simple_form>
     </Layouts.app>

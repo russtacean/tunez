@@ -30,7 +30,7 @@ defmodule TunezWeb.Artists.FormLive do
         <.input field={form[:name]} label="Name" />
         <.input field={form[:biography]} type="textarea" label="Biography" />
         <:actions>
-          <.button type="primary">Save</.button>
+          <.button>Save</.button>
         </:actions>
       </.simple_form>
     </Layouts.app>
