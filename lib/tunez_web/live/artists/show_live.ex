@@ -8,24 +8,41 @@ defmodule TunezWeb.Artists.ShowLive do
   end
 
   def handle_params(params, _url, socket) do
-    artist = Tunez.Music.get_artist_by_id!(params["id"])
+    case Tunez.Music.get_artist_by_id(params["id"]) do
+      {:ok, nil} ->
+        socket =
+          socket
+          |> put_flash(:error, "Artist not found")
+          |> redirect(to: ~p"/")
 
-    albums = [
-      %{
-        id: "test-album-1",
-        name: "Test Album",
-        year_released: 2023,
-        cover_image_url: nil
-      }
-    ]
+        {:noreply, socket}
 
-    socket =
-      socket
-      |> assign(:artist, artist)
-      |> assign(:albums, albums)
-      |> assign(:page_title, artist.name)
+      {:error, _} ->
+        socket =
+          socket
+          |> put_flash(:error, "Artist not found")
+          |> redirect(to: ~p"/")
 
-    {:noreply, socket}
+        {:noreply, socket}
+
+      {:ok, artist} ->
+        albums = [
+          %{
+            id: "test-album-1",
+            name: "Test Album",
+            year_released: 2023,
+            cover_image_url: nil
+          }
+        ]
+
+        socket =
+          socket
+          |> assign(:artist, artist)
+          |> assign(:albums, albums)
+          |> assign(:page_title, artist.name)
+
+        {:noreply, socket}
+    end
   end
 
   def render(assigns) do
@@ -148,7 +165,28 @@ defmodule TunezWeb.Artists.ShowLive do
   end
 
   def handle_event("destroy-artist", _params, socket) do
-    {:noreply, socket}
+    Logger.info("Destroying artist #{socket.assigns.artist.id}")
+
+    case Tunez.Music.destroy_artist(socket.assigns.artist) do
+      {:ok, _} ->
+        socket =
+          socket
+          |> put_flash(:info, "Artist deleted successfully")
+          |> redirect(to: ~p"/")
+
+        {:noreply, socket}
+
+      {:error, error} ->
+        Logger.info(
+          "Could not delete artist '#{socket.assigns.artist.name}' (#{socket.assigns.artist.id})' - #{inspect(error)}"
+        )
+
+        socket =
+          socket
+          |> put_flash(:error, "Could not delete artist #{socket.assigns.artist.name}")
+
+        {:noreply, socket}
+    end
   end
 
   def handle_event("destroy-album", _params, socket) do
