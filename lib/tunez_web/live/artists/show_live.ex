@@ -8,14 +8,23 @@ defmodule TunezWeb.Artists.ShowLive do
   end
 
   def handle_params(%{"id" => artist_id}, _url, socket) do
-    artist = Tunez.Music.get_artist_by_id!(artist_id, load: [:albums])
+    case Tunez.Music.get_artist_by_id(artist_id, load: [:albums]) do
+      {:ok, artist} ->
+        socket =
+          socket
+          |> assign(:artist, artist)
+          |> assign(:page_title, artist.name)
 
-    socket =
-      socket
-      |> assign(:artist, artist)
-      |> assign(:page_title, artist.name)
+        {:noreply, socket}
 
-    {:noreply, socket}
+      {:error, _} ->
+        socket =
+          socket
+          |> put_flash(:error, "Artist not found")
+          |> push_navigate(to: ~p"/")
+
+        {:noreply, socket}
+    end
   end
 
   def render(assigns) do
@@ -145,7 +154,7 @@ defmodule TunezWeb.Artists.ShowLive do
         socket =
           socket
           |> put_flash(:info, "Artist deleted successfully")
-          |> redirect(to: ~p"/")
+          |> push_navigate(to: ~p"/")
 
         {:noreply, socket}
 
@@ -162,8 +171,29 @@ defmodule TunezWeb.Artists.ShowLive do
     end
   end
 
-  def handle_event("destroy-album", _params, socket) do
-    {:noreply, socket}
+  def handle_event("destroy-album", %{"id" => album_id}, socket) do
+    case Tunez.Music.destroy_album(album_id) do
+      :ok ->
+        socket =
+          socket
+          |> update(:artist, fn artist ->
+            Map.update!(artist, :albums, fn albums ->
+              Enum.reject(albums, &(&1.id == album_id))
+            end)
+          end)
+          |> put_flash(:info, "Album deleted successfully")
+
+        {:noreply, socket}
+
+      {:error, error} ->
+        Logger.info("Could not delete album #{album_id} - #{inspect(error)}")
+
+        socket =
+          socket
+          |> put_flash(:error, "Could not delete album")
+
+        {:noreply, socket}
+    end
   end
 
   def handle_event("follow", _params, socket) do
