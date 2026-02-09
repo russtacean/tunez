@@ -7,42 +7,15 @@ defmodule TunezWeb.Artists.ShowLive do
     {:ok, socket}
   end
 
-  def handle_params(params, _url, socket) do
-    case Tunez.Music.get_artist_by_id(params["id"]) do
-      {:ok, nil} ->
-        socket =
-          socket
-          |> put_flash(:error, "Artist not found")
-          |> redirect(to: ~p"/")
+  def handle_params(%{"id" => artist_id}, _url, socket) do
+    artist = Tunez.Music.get_artist_by_id!(artist_id, load: [:albums])
 
-        {:noreply, socket}
+    socket =
+      socket
+      |> assign(:artist, artist)
+      |> assign(:page_title, artist.name)
 
-      {:error, _} ->
-        socket =
-          socket
-          |> put_flash(:error, "Artist not found")
-          |> redirect(to: ~p"/")
-
-        {:noreply, socket}
-
-      {:ok, artist} ->
-        albums = [
-          %{
-            id: "test-album-1",
-            name: "Test Album",
-            year_released: 2023,
-            cover_image_url: nil
-          }
-        ]
-
-        socket =
-          socket
-          |> assign(:artist, artist)
-          |> assign(:albums, albums)
-          |> assign(:page_title, artist.name)
-
-        {:noreply, socket}
-    end
+    {:noreply, socket}
   end
 
   def render(assigns) do
@@ -75,7 +48,7 @@ defmodule TunezWeb.Artists.ShowLive do
       </.button_link>
 
       <ul class="mt-10 space-y-6 md:space-y-10">
-        <li :for={album <- @albums}>
+        <li :for={album <- @artist.albums}>
           <.album_details album={album} />
         </li>
       </ul>
