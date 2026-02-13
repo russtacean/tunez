@@ -11,12 +11,15 @@ defmodule TunezWeb.Artists.IndexLive do
     {:ok, socket}
   end
 
-  def handle_params(_params, _url, socket) do
-    artists = Tunez.Music.read_artists!()
+  def handle_params(params, _url, socket) do
+    IO.inspect(params)
+    query_text = Map.get(params, "q", "")
+    artists = Tunez.Music.search_artists!(query_text)
 
     socket =
       socket
       |> assign(:artists, artists)
+      |> assign(:query_text, query_text)
 
     {:noreply, socket}
   end
@@ -26,6 +29,9 @@ defmodule TunezWeb.Artists.IndexLive do
     <Layouts.app {assigns}>
       <.header responsive={false}>
         <.h1>Artists</.h1>
+        <:action>
+          <.search_box query={@query_text} method="get" data-role="artist_search" phx-submit="search" />
+        </:action>
         <:action>
           <.button_link navigate={~p"/artists/new"} kind="primary">
             New Artist
