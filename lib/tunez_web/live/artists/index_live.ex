@@ -14,11 +14,15 @@ defmodule TunezWeb.Artists.IndexLive do
   def handle_params(params, _url, socket) do
     sort_by = Map.get(params, "sort_by", "name") |> validate_sort_by()
     query_text = Map.get(params, "q", "")
-    artists = Tunez.Music.search_artists!(query_text, query: [sort_input: sort_by])
+
+    page_params = AshPhoenix.LiveView.page_from_params(params, 12)
+
+    page =
+      Tunez.Music.search_artists!(query_text, page: page_params, query: [sort_input: sort_by])
 
     socket =
       socket
-      |> assign(:artists, artists)
+      |> assign(:page, page)
       |> assign(:query_text, query_text)
       |> assign(:sort_by, sort_by)
 
@@ -41,16 +45,18 @@ defmodule TunezWeb.Artists.IndexLive do
         </:action>
       </.header>
 
-      <div :if={@artists == []} class="p-8 text-center">
+      <div :if={@page.results == []} class="p-8 text-center">
         <.icon name="hero-face-frown" class="w-32 h-32 bg-gray-300" />
         <br /> No artist data to display!
       </div>
 
       <ul class="gap-6 lg:gap-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-        <li :for={artist <- @artists}>
+        <li :for={artist <- @page.results}>
           <.artist_card artist={artist} />
         </li>
       </ul>
+
+      <.pagination_links page={@page} query_text={@query_text} sort_by={@sort_by} />
     </Layouts.app>
     """
   end
@@ -105,11 +111,26 @@ defmodule TunezWeb.Artists.IndexLive do
 
   def pagination_links(assigns) do
     ~H"""
-    <div class="flex justify-center pt-8 space-x-4">
-      <.button_link data-role="previous-page" kind="primary" inverse>
+    <div
+      :if={AshPhoenix.LiveView.prev_page?(@page) || AshPhoenix.LiveView.next_page?(@page)}
+      class="flex justify-center pt-8 space-x-4"
+    >
+      <.button_link
+        data-role="previous-page"
+        kind="primary"
+        inverse
+        patch={~p"/?#{query_string(@page, @query_text, @sort_by, "prev")}"}
+        disabled={!AshPhoenix.LiveView.prev_page?(@page)}
+      >
         « Previous
       </.button_link>
-      <.button_link data-role="next-page" kind="primary" inverse>
+      <.button_link
+        data-role="next-page"
+        kind="primary"
+        inverse
+        patch={~p"/?#{query_string(@page, @query_text, @sort_by, "next")}"}
+        disabled={!AshPhoenix.LiveView.next_page?(@page)}
+      >
         Next »
       </.button_link>
     </div>
@@ -193,5 +214,15 @@ defmodule TunezWeb.Artists.IndexLive do
       n when n >= 1_000 -> "#{Float.round(n / 1_000, 1)}K"
       n -> n
     end
+  end
+
+  def query_string(page, query_text, sort_by, direction) do
+    case(AshPhoenix.LiveView.page_link_params(page, direction)) do
+      :invalid -> []
+      list -> list
+    end
+    |> Keyword.put(:q, query_text)
+    |> Keyword.put(:sort_by, sort_by)
+    |> remove_empty()
   end
 end
