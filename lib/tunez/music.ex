@@ -9,6 +9,7 @@ defmodule Tunez.Music do
         post :create
         patch :update
         delete :destroy
+        related :albums, :read, primary?: true
       end
 
       base_route "/albums", Tunez.Music.Albums do
