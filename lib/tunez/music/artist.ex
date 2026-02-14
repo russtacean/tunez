@@ -7,6 +7,8 @@ defmodule Tunez.Music.Artist do
 
   json_api do
     type "artist"
+    includes [:albums]
+    derive_filter? false
   end
 
   postgres do
@@ -18,13 +20,20 @@ defmodule Tunez.Music.Artist do
     end
   end
 
+  resource do
+    description "A person or group of people who create music"
+  end
+
   actions do
     defaults [:create, :read, :destroy]
     default_accept [:name, :biography]
 
     read :search do
+      description "Lists artists, optionally filtered by name"
+
       # case insensitive string
       argument :query, :ci_string do
+        description "Return only artists whose name include the query value (case insensitive)"
         constraints allow_empty?: true
         default ""
       end
