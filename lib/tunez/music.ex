@@ -29,7 +29,7 @@ defmodule Tunez.Music do
         related :albums, :read, primary?: true
       end
 
-      base_route "/albums", Tunez.Music.Albums do
+      base_route "/albums", Tunez.Music.Album do
         post :create
         patch :update
         delete :destroy
